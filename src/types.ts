@@ -92,7 +92,8 @@ export enum Variant {
   NON_DET = 'non-det',
   CONCURRENT = 'concurrent',
   GPU = 'gpu',
-  EXPLICIT_CONTROL = 'explicit-control'
+  TRACER = 'tracer',
+  EXPLICIT_CONTROL = 'explicit-control',
 }
 
 export interface Language {

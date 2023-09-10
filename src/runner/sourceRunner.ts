@@ -26,6 +26,7 @@ import {
   IStepperPropContents,
   redexify
 } from '../stepper/stepper'
+import { applyTracer } from '../tracer/tracer'
 import { sandboxedEval } from '../transpiler/evalContainer'
 import { transpile } from '../transpiler/transpiler'
 import { Context, RecursivePartial, Scheduler, Variant } from '../types'
@@ -223,6 +224,11 @@ function runECEvaluator(program: es.Program, context: Context, options: IOptions
   return ECEResultPromise(context, value)
 }
 
+function runTracer(program: es.Program, context: Context, options: any): Promise<Result> {
+  const theOptions = _.merge({ ...DEFAULT_SOURCE_OPTIONS }, options)
+  return fullJSRunner(applyTracer(program, context), context, theOptions.importOptions)
+}
+
 export async function sourceRunner(
   program: es.Program,
   context: Context,
@@ -241,6 +247,10 @@ export async function sourceRunner(
 
   if (context.variant === Variant.CONCURRENT) {
     return runConcurrent(program, context, theOptions)
+  }
+
+  if (context.variant === Variant.TRACER) {
+    return runTracer(program, context, theOptions)
   }
 
   if (theOptions.useSubst) {

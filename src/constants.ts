@@ -32,6 +32,7 @@ export const sourceLanguages: Language[] = [
   { chapter: Chapter.SOURCE_1, variant: Variant.TYPED },
   { chapter: Chapter.SOURCE_1, variant: Variant.WASM },
   { chapter: Chapter.SOURCE_1, variant: Variant.LAZY },
+  { chapter: Chapter.SOURCE_1, variant: Variant.TRACER },
   { chapter: Chapter.SOURCE_2, variant: Variant.DEFAULT },
   { chapter: Chapter.SOURCE_2, variant: Variant.LAZY },
   { chapter: Chapter.SOURCE_3, variant: Variant.DEFAULT },
