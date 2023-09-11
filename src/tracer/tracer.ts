@@ -6,6 +6,12 @@ import { simple } from '../utils/walkers'
 
 const acorn = require('acorn')
 
+/* 
+This function traverses the AST bottom-to-top and transforms all BinaryExpression nodes into CallExpression nodes.
+This allows us to treat both binary operations and function call expressions in the same manner.
+
+We also add in a flag ("b2c") and the operator itself to make tracing easier.
+*/ 
 const transformBinaryExpressionsToCallExpressions = (program: es.Program, context: Context) => {
   simple(program, {
     BinaryExpression(node: es.BinaryExpression) {
@@ -17,6 +23,19 @@ const transformBinaryExpressionsToCallExpressions = (program: es.Program, contex
   return program;
 }
 
+/*
+This function traverses the AST bottom-to-top and traces all CallExpression nodes.
+It first transforms a tracing function into an AST node.
+
+The tracing function is of this form:
+(func, args) => { trace(func, args); func(args); }
+
+This allows the tracing to happen as a side effect, while still returning the original result of the expression,
+ensuring that even when the tracing occurs, the program flow is uninterrupted.
+
+We then input the callee (the function) of the tracing function and our custom arguments into the original CallExpression
+node, essentially "injecting" the tracing logic.
+*/
 export const applyTracer = (program: es.Program, context: Context) => {
   const transformedProgram = transformBinaryExpressionsToCallExpressions(program, context);
   simple(transformedProgram, {
@@ -36,7 +55,7 @@ export const applyTracer = (program: es.Program, context: Context) => {
           })(0);'
         ).body[0]
 
-        // Parse operator name into a string
+        // Parse operator name into a literal
         const op_func_name = node.arguments[3]
 
         // Create a tracer node
@@ -45,8 +64,6 @@ export const applyTracer = (program: es.Program, context: Context) => {
           node.callee,
           ...node.arguments
         ]
-
-        console.log(opTracerNode.expression.arguments)
 
         // Replace node with opTracerNode
         mutateToCallExpression(node, opTracerNode.expression.callee, opTracerNode.expression.arguments)
