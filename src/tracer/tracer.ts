@@ -6,66 +6,22 @@ import { simple } from '../utils/walkers'
 
 const acorn = require('acorn')
 
-export const applyTracer = (program: es.Program, context: Context) => {
+const transformBinaryExpressionsToCallExpressions = (program: es.Program, context: Context) => {
   simple(program, {
     BinaryExpression(node: es.BinaryExpression) {
-      // Create a ES Tree version of the tracer
-      const tracerNode = acorn.parse(
-        '((op, op_func, node_left, node_right, left, right) => { \
-          display(op, "Operator ::"); \
-          display(left, "Left ::"); \
-          display(right, "Right ::"); \
-          display("----------------"); \
-          return op_func(node_left, node_right); \
-        })(0);'
-      ).body[0]
+      // Transform into call expressions
+    }
+  })
+  return program;
+}
 
-      // Mapping for operators to functions
-      const op_func_map = new Map<string, any>([
-        ["+", (x: number, y: number) => x + y],
-        ["-", (x: number, y: number) => x - y],
-        ["*", (x: number, y: number) => x * y],
-        ["/", (x: number, y: number) => x / y],
-        ["%", (x: number, y: number) => x % y],
-        ["<", (x: number, y: number) => x < y],
-        ["<=", (x: number, y: number) => x <= y],
-        [">", (x: number, y: number) => x > y],
-        [">=", (x: number, y: number) => x >= y],
-        ["===", (x: boolean, y: boolean) => x === y],
-        ["!==", (x: boolean, y: boolean) => x !== y],
-      ]);
+export const applyTracer = (program: es.Program, context: Context) => {
+  const transformedProgram = transformBinaryExpressionsToCallExpressions(program, context);
+  simple(transformedProgram, {
 
-      // Parse left / right into names
-      // const parse_param = 
-      console.log(node)
-
-      // Parse function name into a string
-      const trace_op = literal(node.operator)
-      const trace_left = literal(node.left['raw'] || node.left['name'])
-      const trace_right = literal(node.right['raw'] || node.right['name'])
-
-      const trace_op_func = op_func_map.get(node.operator)
-
-      // Create a tracer node
-      tracerNode.expression.arguments = [
-        trace_op,
-        trace_op_func,
-        node.left,
-        node.right,
-        trace_left,
-        trace_right,
-      ]
-
-      console.log(trace_op)
-      console.log(trace_left)
-      console.log(trace_right)
-
-      // Replace node with tracerNode
-      // mutateToCallExpression(node, tracerNode.expression.callee, tracerNode.expression.arguments)
-    },
     CallExpression(node: es.CallExpression) {
       // Create a ES Tree version of the tracer
-      const tracerNode = acorn.parse(
+      const expTracerNode = acorn.parse(
         '((func_name, args_len, func, ...args) => { \
           display(func_name, "Function ::"); \
           for (let j = 0; j < args_len; j++) { \
@@ -84,18 +40,68 @@ export const applyTracer = (program: es.Program, context: Context) => {
       const trace_args_len = literal(node.arguments.length)
 
       // Create a tracer node
-      tracerNode.expression.arguments = [
+      expTracerNode.expression.arguments = [
         trace_func_name,
         trace_args_len,
         node.callee,
         ...node.arguments
       ]
 
-      // Replace node with tracerNode
-      mutateToCallExpression(node, tracerNode.expression.callee, tracerNode.expression.arguments)
+      // Replace node with expTracerNode
+      mutateToCallExpression(node, expTracerNode.expression.callee, expTracerNode.expression.arguments)
     },
-    // binaryExpression()
-  })
+  });
 
   return program
 }
+
+    // BinaryExpression(node: es.BinaryExpression) {
+      // Create a ES Tree version of the tracer
+      // const opTracerNode = acorn.parse(
+      //   '((op, left, right, node_op_func, node_left, node_right) => { \
+      //     display(op, "Operator ::"); \
+      //     display(left, "Left ::"); \
+      //     display(right, "Right ::"); \
+      //     display("----------------"); \
+      //     return node_op_func(node_left, node_right); \
+      //   })(0);'
+      // ).body[0]
+      
+
+      // Mapping for operators to functions
+      // const op_func_map = new Map<string, string>([
+      //   ["+", "(x, y) => x + y"],
+      //   ["-", "(x, y) => x - y"],
+      //   ["*", "(x, y) => x * y"],
+      //   ["/", "(x, y) => x / y"],
+      //   ["%", "(x, y) => x % y"],
+      //   ["<", "(x, y) => x < y"],
+      //   ["<=", "(x, y) => x <= y"],
+      //   [">", "(x, y) => x > y"],
+      //   [">=", "(x, y) => x >= y"],
+      //   ["===", "(x, y) => x === y"],
+      //   ["!==", "(x, y) => x !== y"]
+      // ]);
+      // console.log(op_func_map.get(node.operator))
+
+    //   const opTracerNode = acorn.parse(
+    //     '((op, node_op_func) => { \
+    //       display(op, "Operator ::"); \
+    //       display("----------------"); \
+    //       return node_op_func; \
+    //     })(0);'
+    //   ).body[0]
+
+    //   // Parse function name into a string
+    //   const trace_op = literal(node.operator)
+    //   const node_op_func = binaryExpression(node.operator, node.left, node.right)
+      
+    //   // Create a tracer node
+    //   opTracerNode.expression.arguments = [
+    //     trace_op,
+    //     node_op_func,
+    //   ]
+
+    //   // Replace node with opTracerNode
+    //   mutateToCallExpression(node, opTracerNode.expression.callee, opTracerNode.expression.arguments)
+    // },
