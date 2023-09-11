@@ -9,7 +9,9 @@ const acorn = require('acorn')
 const transformBinaryExpressionsToCallExpressions = (program: es.Program, context: Context) => {
   simple(program, {
     BinaryExpression(node: es.BinaryExpression) {
-      // Transform into call expressions
+      const binary_fn = acorn.parse('(x, y, flag, op) => x ' + node.operator + ' y').body[0].expression
+      const args = [node.left, node.right, literal("b2c"), literal(node.operator)]
+      mutateToCallExpression(node, binary_fn, args)
     }
   })
   return program;
@@ -18,37 +20,69 @@ const transformBinaryExpressionsToCallExpressions = (program: es.Program, contex
 export const applyTracer = (program: es.Program, context: Context) => {
   const transformedProgram = transformBinaryExpressionsToCallExpressions(program, context);
   simple(transformedProgram, {
-
     CallExpression(node: es.CallExpression) {
-      // Create a ES Tree version of the tracer
-      const expTracerNode = acorn.parse(
-        '((func_name, args_len, func, ...args) => { \
-          display(func_name, "Function ::"); \
-          for (let j = 0; j < args_len; j++) { \
-            let k = args[j]; \
-            display(k, "Arg ::"); \
-          } \
-          display("----------------"); \
-          return func(...args); \
-        })(0);'
-      ).body[0]
+      if (node.arguments.length === 4 && node.arguments[2]['value'] === 'b2c') {
 
-      // Parse function name into a string
-      const trace_func_name = literal(node.callee['name'] || 'Anonymous')
+        // Create a ES Tree version of the binary expression tracer
+        const opTracerNode = acorn.parse(
+          '((op_name, func, ...args) => { \
+            display(op_name, "Operation ::"); \
+            let k = args[0]; \
+            let j = args[1]; \
+            display(k, "Left ::"); \
+            display(j, "Right ::"); \
+            display("----------------"); \
+            return func(...args); \
+          })(0);'
+        ).body[0]
 
-      // Parse length of arguments
-      const trace_args_len = literal(node.arguments.length)
+        // Parse operator name into a string
+        const op_func_name = node.arguments[3]
 
-      // Create a tracer node
-      expTracerNode.expression.arguments = [
-        trace_func_name,
-        trace_args_len,
-        node.callee,
-        ...node.arguments
-      ]
+        // Create a tracer node
+        opTracerNode.expression.arguments = [
+          op_func_name,
+          node.callee,
+          ...node.arguments
+        ]
 
-      // Replace node with expTracerNode
-      mutateToCallExpression(node, expTracerNode.expression.callee, expTracerNode.expression.arguments)
+        console.log(opTracerNode.expression.arguments)
+
+        // Replace node with opTracerNode
+        mutateToCallExpression(node, opTracerNode.expression.callee, opTracerNode.expression.arguments)
+
+      } else {
+
+        // Create a ES Tree version of the call expression tracer
+        const expTracerNode = acorn.parse(
+          '((func_name, args_len, func, ...args) => { \
+            display(func_name, "Function ::"); \
+            for (let j = 0; j < args_len; j++) { \
+              let k = args[j]; \
+              display(k, "Arg ::"); \
+            } \
+            display("----------------"); \
+            return func(...args); \
+          })(0);'
+        ).body[0]
+
+        // Parse function name into a string
+        const trace_func_name = literal(node.callee['name'] || 'Anonymous')
+
+        // Parse length of arguments
+        const trace_args_len = literal(node.arguments.length)
+
+        // Create a tracer node
+        expTracerNode.expression.arguments = [
+          trace_func_name,
+          trace_args_len,
+          node.callee,
+          ...node.arguments
+        ]
+
+        // Replace node with expTracerNode
+        mutateToCallExpression(node, expTracerNode.expression.callee, expTracerNode.expression.arguments)
+      }
     },
   });
 
