@@ -153,21 +153,6 @@ export const mutateToCallExpression = (
   node.arguments = args
 }
 
-export const mutateToBinaryExpression = (
-  node: es.Node,
-  operator: es.BinaryOperator,
-  left: es.Expression,
-  right: es.Expression,
-  loc?: es.SourceLocation | null
-) => {
-  node.type = 'BinaryExpression'
-  node = node as es.BinaryExpression,
-  node.operator = operator,
-  node.left = left,
-  node.right = right,
-  node.loc = loc,
-}
-
 export const mutateToAssignmentExpression = (
   node: es.Node,
   left: es.Pattern,
