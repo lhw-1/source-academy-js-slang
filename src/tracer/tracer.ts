@@ -11,12 +11,12 @@ export const applyTracer = (program: es.Program, context: Context) => {
     BinaryExpression(node: es.BinaryExpression) {
       // Create a ES Tree version of the tracer
       const tracerNode = acorn.parse(
-        '((op, op_func, left, right) => { \
+        '((op, op_func, node_left, node_right, left, right) => { \
           display(op, "Operator ::"); \
           display(left, "Left ::"); \
           display(right, "Right ::"); \
           display("----------------"); \
-          return op_func(left, right); \
+          return op_func(node_left, node_right); \
         })(0);'
       ).body[0]
 
@@ -27,18 +27,22 @@ export const applyTracer = (program: es.Program, context: Context) => {
         ["*", (x: number, y: number) => x * y],
         ["/", (x: number, y: number) => x / y],
         ["%", (x: number, y: number) => x % y],
-        ["===", (x: any, y: any) => x === y],
-        ["!==", (x: any, y: any) => x !== y],
         ["<", (x: number, y: number) => x < y],
         ["<=", (x: number, y: number) => x <= y],
         [">", (x: number, y: number) => x > y],
         [">=", (x: number, y: number) => x >= y],
+        ["===", (x: boolean, y: boolean) => x === y],
+        ["!==", (x: boolean, y: boolean) => x !== y],
       ]);
+
+      // Parse left / right into names
+      // const parse_param = 
+      console.log(node)
 
       // Parse function name into a string
       const trace_op = literal(node.operator)
-      const trace_left = literal(node.left['raw'])
-      const trace_right = literal(node.right['raw'])
+      const trace_left = literal(node.left['raw'] || node.left['name'])
+      const trace_right = literal(node.right['raw'] || node.right['name'])
 
       const trace_op_func = op_func_map.get(node.operator)
 
@@ -46,12 +50,18 @@ export const applyTracer = (program: es.Program, context: Context) => {
       tracerNode.expression.arguments = [
         trace_op,
         trace_op_func,
+        node.left,
+        node.right,
         trace_left,
-        trace_right
+        trace_right,
       ]
 
+      console.log(trace_op)
+      console.log(trace_left)
+      console.log(trace_right)
+
       // Replace node with tracerNode
-      mutateToCallExpression(node, tracerNode.expression.callee, tracerNode.expression.arguments)
+      // mutateToCallExpression(node, tracerNode.expression.callee, tracerNode.expression.arguments)
     },
     CallExpression(node: es.CallExpression) {
       // Create a ES Tree version of the tracer
