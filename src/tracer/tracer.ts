@@ -45,14 +45,18 @@ export const applyTracer = (program: es.Program, context: Context) => {
         // Create a ES Tree version of the binary expression tracer
         const opTracerNode = acorn.parse(
           '((op_name, func, ...args) => { \
-            display(op_name, "Operation ::"); \
-            let k = args[0]; \
-            let j = args[1]; \
-            display(k, "Left ::"); \
-            display(j, "Right ::"); \
-            display("----------------"); \
+            display(op_name); \
             return func(...args); \
           })(0);'
+          // '((op_name, func, ...args) => { \
+          //   display(op_name, "Operation ::"); \
+          //   let k = args[0]; \
+          //   let j = args[1]; \
+          //   display(k, "Left ::"); \
+          //   display(j, "Right ::"); \
+          //   display("----------------"); \
+          //   return func(...args); \
+          // })(0);'
         ).body[0]
 
         // Parse operator name into a literal
@@ -73,14 +77,18 @@ export const applyTracer = (program: es.Program, context: Context) => {
         // Create a ES Tree version of the call expression tracer
         const expTracerNode = acorn.parse(
           '((func_name, args_len, func, ...args) => { \
-            display(func_name, "Function ::"); \
-            for (let j = 0; j < args_len; j++) { \
-              let k = args[j]; \
-              display(k, "Arg ::"); \
-            } \
-            display("----------------"); \
+            display(func_name); \
             return func(...args); \
           })(0);'
+          // '((func_name, args_len, func, ...args) => { \
+          //   display(func_name, "Function ::"); \
+          //   for (let j = 0; j < args_len; j++) { \
+          //     let k = args[j]; \
+          //     display(k, "Arg ::"); \
+          //   } \
+          //   display("----------------"); \
+          //   return func(...args); \
+          // })(0);'
         ).body[0]
 
         // Parse function name into a string
